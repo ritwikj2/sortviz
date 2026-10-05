@@ -266,9 +266,11 @@ function* radixSort(a) {
   }
 }
 
+const BOGO_CAP = 2000;
+
 function* bogoSort(a) {
   const random = mulberry32(42);
-  for (let shuffles = 0; shuffles <= 2000; shuffles++) {
+  for (let shuffles = 0; ; shuffles++) {
     let sorted = true;
     for (let i = 1; i < a.length; i++) {
       yield { type: 'compare', i: i - 1, j: i };
@@ -278,11 +280,13 @@ function* bogoSort(a) {
       }
     }
     if (sorted) return;
-    if (shuffles === 2000) return { gaveUp: true };
+    if (shuffles === BOGO_CAP) return { gaveUp: true };
     for (let i = a.length - 1; i > 0; i--) {
       const j = Math.floor(random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-      yield { type: 'swap', i, j };
+      if (j !== i) {
+        [a[i], a[j]] = [a[j], a[i]];
+        yield { type: 'swap', i, j };
+      }
     }
   }
 }
@@ -301,5 +305,5 @@ export const ALGORITHMS = [
   { id: 'quick', name: 'Quick sort', complexity: 'O(n²)', run: quickSort, enabledByDefault: true },
   { id: 'counting', name: 'Counting sort', complexity: 'O(n + k)', run: countingSort, enabledByDefault: true },
   { id: 'radix', name: 'Radix sort · base 4', complexity: 'O(d(n + 4))', run: radixSort, enabledByDefault: true },
-  { id: 'bogo', name: 'Bogo sort', complexity: '2,000 shuffle cap', run: bogoSort, enabledByDefault: false },
+  { id: 'bogo', name: 'Bogo sort', complexity: `${BOGO_CAP.toLocaleString('en-US')} shuffle cap`, run: bogoSort, enabledByDefault: false },
 ];

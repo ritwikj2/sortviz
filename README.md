@@ -30,15 +30,14 @@ start at a lower speed.
 Requires Node.js 22 or newer; no installation is needed:
 
 ```sh
-node --test test/
+node --test
 # or
 npm test
 ```
 
 Tests check sorting, bounds, seeded permutations, immediate event replay, early
-exit, and bogo's hard cap. The one-line `test/index.js` supports the directory
-command on Node 22. Large bogo completion tests are skipped; a tiny sort and its
-exact 2,000-shuffle limit are tested separately.
+exit, and bogo's hard cap. Large bogo completion tests are skipped; a tiny sort
+and the 2,000-shuffle work budget are tested separately.
 
 ## Algorithms and counts
 

@@ -12,11 +12,13 @@ const stepButton = document.getElementById('step');
 const options = document.getElementById('algorithm-options');
 const panelContainer = document.getElementById('panels');
 const raceStatus = document.getElementById('race-status');
-const gridSizes = [4, 6, 8, 10, 12, 16, 20, 24, 32];
 const numberFormat = new Intl.NumberFormat();
+const rootStyles = getComputedStyle(document.documentElement);
+const compareColor = rootStyles.getPropertyValue('--compare').trim();
+const writeColor = rootStyles.getPropertyValue('--write').trim();
 
 let source;
-let gridSize = 12;
+let gridSize;
 let shuffled = [];
 let panels = [];
 let playing = false;
@@ -75,6 +77,7 @@ function showImageMessage(message, error = false) {
 }
 
 function drawPreview() {
+  // Match the preview's 104px desktop size in index.html and styles.css.
   preview.width = preview.height = Math.round(104 * (window.devicePixelRatio || 1));
   const ctx = preview.getContext('2d');
   ctx.drawImage(source, 0, 0, preview.width, preview.height);
@@ -112,7 +115,8 @@ async function loadImage(file) {
     drawPreview();
     resetRace();
     showImageMessage('Image ready · centered square. Drop or paste to replace it.');
-  } catch {
+  } catch (error) {
+    console.error('Could not load image:', error);
     if (request === imageRequest) {
       showImageMessage('Could not decode that image. Try another image file.', true);
     }
@@ -171,7 +175,7 @@ function renderPanel(panel, full = false) {
   }
   panel.dirty.clear();
   if (panel.highlight) {
-    panel.ctx.strokeStyle = panel.highlight.type === 'compare' ? '#ffc477' : '#82e3c3';
+    panel.ctx.strokeStyle = panel.highlight.type === 'compare' ? compareColor : writeColor;
     panel.ctx.lineWidth = Math.max(1, 1.5 * (window.devicePixelRatio || 1));
     const inset = panel.ctx.lineWidth / 2;
     for (const index of panel.highlight.indices) {
@@ -218,6 +222,7 @@ function createPanel(algorithm) {
   article.append(heading, canvas, stats);
   const array = shuffled.slice();
   const panel = {
+    name: algorithm.name,
     article, canvas, ctx: canvas.getContext('2d'), badge, counters,
     array, generator: algorithm.run(array), dirty: new Set(), highlight: null,
     comparisons: 0, writes: 0, steps: 0, complete: false, status: 'idle',
@@ -275,6 +280,11 @@ function newShuffle() {
   reshuffle();
 }
 
+function readGridSize() {
+  gridSize = Math.min(32, Number(gridInput.value) || 12);
+  gridInput.value = String(gridSize);
+}
+
 function advancePanel(panel, budget) {
   if (panel.complete) return;
   setStatus(panel, playing ? 'running' : 'paused');
@@ -301,7 +311,8 @@ function advancePanel(panel, budget) {
       }
       panel.highlight = { type: event.type, indices };
     }
-  } catch {
+  } catch (error) {
+    console.error(`${panel.name} failed:`, error);
     panel.complete = true;
     panel.highlight = null;
     setStatus(panel, 'error');
@@ -320,7 +331,9 @@ function advance(budget) {
 function animate() {
   animationFrame = null;
   if (!playing) return;
-  advance(Math.max(1, Math.min(200, Number(speedInput.value) || 1)));
+  const min = Number(speedInput.min);
+  const max = Number(speedInput.max);
+  advance(Math.max(min, Math.min(max, Number(speedInput.value) || min)));
   if (panels.every((panel) => panel.complete)) pause();
   else animationFrame = requestAnimationFrame(animate);
 }
@@ -351,7 +364,6 @@ for (const algorithm of ALGORITHMS) {
   input.value = algorithm.id;
   input.checked = algorithm.enabledByDefault;
   label.append(input, element('span', '', algorithm.name));
-  if (algorithm.id === 'bogo') label.append(element('small', '', '2,000 shuffle cap'));
   options.append(label);
 }
 
@@ -370,12 +382,11 @@ seedInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') reshuffle();
 });
 gridInput.addEventListener('change', () => {
-  const value = Number(gridInput.value);
-  gridSize = gridSizes.includes(value) ? value : 12;
-  gridInput.value = String(gridSize);
+  readGridSize();
   reshuffle();
 });
-speedInput.value = matchMedia('(prefers-reduced-motion: reduce)').matches ? '4' : '24';
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) speedInput.value = '4';
+// Match the mobile breakpoint in styles.css.
 document.querySelector('.lineup').open = !matchMedia('(max-width: 620px)').matches;
 function updateSpeed() {
   speedOutput.textContent = `${speedInput.value} steps / frame`;
@@ -385,7 +396,9 @@ updateSpeed();
 
 document.addEventListener('keydown', (event) => {
   if (event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
-  if (event.target.closest('input, textarea, select, button, a, summary, [contenteditable]:not([contenteditable="false"])')) return;
+  if (event.target.closest('input:not([type="checkbox"]):not([type="range"]):not([type="file"]), textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+  if (event.key === ' ' && event.target.closest('button, a, summary, input')) return;
+  if (event.key === 'ArrowRight' && event.target.matches('input[type="range"]')) return;
   const actions = { ' ': togglePlay, ArrowRight: stepOnce, r: resetRace, s: newShuffle };
   const action = actions[event.key] || actions[event.key.toLowerCase()];
   if (action) {
@@ -409,9 +422,10 @@ document.addEventListener('dragleave', () => {
   if (!dragDepth) document.body.classList.remove('dragging');
 });
 document.addEventListener('drop', (event) => {
-  event.preventDefault();
   dragDepth = 0;
   document.body.classList.remove('dragging');
+  if (!Array.from(event.dataTransfer?.types || []).includes('Files')) return;
+  event.preventDefault();
   const files = Array.from(event.dataTransfer.files);
   loadImage(files.find((file) => file.type.startsWith('image/')) || files[0]);
 });
@@ -433,6 +447,7 @@ window.addEventListener('resize', () => {
   drawPreview();
 });
 
+readGridSize();
 source = makeDemo();
 drawPreview();
 newShuffle();

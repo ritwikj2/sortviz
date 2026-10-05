@@ -23,6 +23,7 @@ function runAndReplay(algorithm, input, budget = Math.max(100, input.length ** 2
     } else {
       assert.ok(Number.isInteger(event.j) && event.j >= 0 && event.j < a.length, 'valid j');
       if (event.type === 'swap') {
+        assert.notEqual(event.i, event.j, 'swaps must touch distinct indices');
         [replay[event.i], replay[event.j]] = [replay[event.j], replay[event.i]];
       }
     }
@@ -64,11 +65,11 @@ test('Bogo sorts a deterministic tiny permutation', () => {
   assert.deepEqual(a, [0, 1, 2, 3]);
 });
 
-test('Bogo gives up after exactly 2,000 shuffles', () => {
+test('Bogo gives up within its 2,000-shuffle work budget', () => {
   const bogo = ALGORITHMS.find(({ id }) => id === 'bogo');
   const { a, completion, counts } = runAndReplay(bogo, seededShuffle(64, 'cap'), 260000);
   assert.deepEqual(completion, { gaveUp: true });
-  assert.equal(counts.swap, 2000 * 63);
+  assert.ok(counts.swap > 0 && counts.swap <= 2000 * 63);
   assert.deepEqual(a.slice().sort((left, right) => left - right), Array.from({ length: 64 }, (_, i) => i));
 });
 
