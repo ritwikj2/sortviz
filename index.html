@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Race sorting algorithms as they put the same shuffled picture back together. Private, local, and dependency-free.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' blob: data:; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>sortviz — a picture sorting race</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div>
+        <h1>sortviz<span aria-hidden="true">.</span></h1>
+        <p>One shuffled picture. A race back to order.</p>
+      </div>
+      <p class="privacy-note">Your picture stays in your browser.</p>
+    </header>
+
+    <section class="controls" aria-label="Race controls">
+      <div class="setup-row">
+        <div class="image-controls">
+          <canvas id="preview" width="104" height="104" aria-label="Original image preview"></canvas>
+          <div class="image-actions">
+            <label for="image-input">Picture</label>
+            <input id="image-input" type="file" accept="image/*" aria-describedby="image-message">
+            <button id="demo" type="button">Use demo image</button>
+            <p id="image-message" class="hint" role="status">Drop or paste an image anywhere.</p>
+          </div>
+        </div>
+        <div class="field">
+          <label for="grid-size">Grid</label>
+          <select id="grid-size">
+            <option value="4">4 × 4 · 16 tiles</option>
+            <option value="6">6 × 6 · 36 tiles</option>
+            <option value="8">8 × 8 · 64 tiles</option>
+            <option value="10">10 × 10 · 100 tiles</option>
+            <option value="12" selected>12 × 12 · 144 tiles</option>
+            <option value="16">16 × 16 · 256 tiles</option>
+            <option value="20">20 × 20 · 400 tiles</option>
+            <option value="24">24 × 24 · 576 tiles</option>
+            <option value="32">32 × 32 · 1,024 tiles</option>
+          </select>
+        </div>
+        <div class="field seed-field">
+          <label for="seed">Shuffle seed</label>
+          <div class="joined-controls">
+            <input id="seed" type="text" maxlength="64" spellcheck="false" autocomplete="off" aria-describedby="seed-hint">
+            <button id="shuffle" type="button">Shuffle</button>
+          </div>
+          <p id="seed-hint" class="hint">Type a seed to replay a shuffle.</p>
+        </div>
+      </div>
+
+      <div class="playback-row">
+        <div class="playback-buttons">
+          <button id="play" class="primary" type="button" aria-pressed="false">Play</button>
+          <button id="step" type="button">Step</button>
+          <button id="reset" type="button">Reset</button>
+        </div>
+        <div class="speed-field">
+          <label for="speed">Speed <output id="speed-value" for="speed">24 steps / frame</output></label>
+          <input id="speed" type="range" min="1" max="200" value="24" aria-describedby="speed-hint">
+        </div>
+        <p id="speed-hint" class="hint">Step advances every panel by one event.</p>
+      </div>
+
+      <details class="lineup" open>
+        <summary>Algorithms <span id="selection-count"></span></summary>
+        <fieldset>
+          <legend class="visually-hidden">Choose algorithms to race</legend>
+          <div id="algorithm-options" class="algorithm-options"></div>
+        </fieldset>
+        <p class="hint">Changing the picture, grid, seed, or lineup resets the race.</p>
+      </details>
+    </section>
+
+    <section aria-label="Sorting race">
+      <div class="race-heading">
+        <p id="race-status" role="status"></p>
+        <div class="legend" aria-label="Highlight colors">
+          <span class="compare-key">Compare</span>
+          <span class="write-key">Swap / write</span>
+        </div>
+      </div>
+      <p id="empty-state" class="empty-state" hidden>Choose at least one algorithm above to start a race.</p>
+      <div id="panels" class="panels"></div>
+    </section>
+
+    <footer>
+      <p>Equal event budgets, different paths. Writes count two per swap; auxiliary storage is excluded.</p>
+      <p><kbd>Space</kbd> play / pause <kbd>→</kbd> step <kbd>R</kbd> reset <kbd>S</kbd> shuffle</p>
+    </footer>
+    <noscript>This visualizer needs JavaScript enabled. All image processing happens locally.</noscript>
+  </main>
+</body>
+</html>
